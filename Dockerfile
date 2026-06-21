@@ -11,11 +11,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git build-essential && \
     rm -rf /var/lib/apt/lists/*
 
-COPY pyproject.toml ./
+# Copy all files needed for pip install
+COPY pyproject.toml README.md LICENSE ./
 COPY src/ src/
 
-# Install with all optional deps (local whisper + mcp-video)
-RUN pip install --no-cache-dir --prefix=/install ".[all]"
+# Install base deps only (no torch, no mcp-video)
+# Use BUILD_MODE=full to include local-whisper + mcp-video
+ARG BUILD_MODE=lite
+RUN if [ "$BUILD_MODE" = "full" ]; then \
+        pip install --no-cache-dir --prefix=/install ".[all]"; \
+    else \
+        pip install --no-cache-dir --prefix=/install "."; \
+    fi
 
 # ---- Runtime ----
 FROM python:3.12-slim AS runtime
@@ -42,9 +49,9 @@ WORKDIR /app
 ENV SMART_CLIP_TRANSPORT=sse
 ENV SMART_CLIP_HOST=0.0.0.0
 ENV SMART_CLIP_PORT=8000
+ENV SMART_CLIP_WHISPER_MODE=api
 ENV SMART_CLIP_WHISPER_MODEL=base
 ENV SMART_CLIP_LANGUAGE=zh
-# OPENAI_API_KEY must be set at runtime
 
 # Volume for video files
 VOLUME /workspace
@@ -57,7 +64,3 @@ HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
 
 ENTRYPOINT ["smart-clip-mcp"]
 CMD ["--transport", "sse", "--host", "0.0.0.0", "--port", "8000"]
-
-# ---- Test mode ----
-# Run: docker compose run --rm smart-clip test /workspace/videos/your.mp4
-# Analyze only: docker compose run --rm smart-clip test /workspace/videos/your.mp4 --analyze-only

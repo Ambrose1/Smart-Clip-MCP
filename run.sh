@@ -21,7 +21,7 @@ LLM_MODEL="deepseek-chat"             # deepseek-chat / gpt-4o-mini
 # Whisper 配置（语音转文字）
 # - api: 用 OpenAI Whisper API（需要 OPENAI_API_KEY，不用装 torch）
 # - local: 本地跑 Whisper 模型（免费，首次下载约 150MB）
-WHISPER_MODE="local"
+WHISPER_MODE="api"
 OPENAI_API_KEY=""                      # Whisper API 模式需要填
 
 # 语言
