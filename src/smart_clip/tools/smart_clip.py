@@ -27,6 +27,7 @@ async def _run_smart_clip(
     with_bgm: bool = False,
     output_dir: str = "./smart-clip-output",
     template: str = "default",
+    analyze_only: bool = False,
 ) -> dict:
     """Core logic for smart_clip tool."""
     # Validate input
@@ -104,7 +105,38 @@ async def _run_smart_clip(
 
     logger.info(f"Plan: {len(plan.clips)} clips selected, total {plan.total_selected_duration:.1f}s")
 
-    # Phase 3: Execute
+    # Phase 3: Execute (skip if analyze_only)
+    if analyze_only:
+        logger.info("analyze_only=True: skipping execution phase")
+        analysis = AnalysisInfo(
+            total_duration=total_duration,
+            speech_ratio=round(speech_ratio, 2),
+            language=subtitle.language,
+            highlights_found=len(candidates),
+            highlights_selected=len(plan.clips),
+        )
+        return {
+            "success": True,
+            "analyze_only": True,
+            "analysis": analysis.model_dump(),
+            "plan": plan.model_dump(),
+            "candidates": [
+                {
+                    "start": c.start,
+                    "end": c.end,
+                    "duration": round(c.duration, 1),
+                    "title": c.title,
+                    "reason": c.reason,
+                    "weighted_score": c.weighted_score,
+                    "suggested_hook": c.suggested_hook,
+                }
+                for c in candidates
+            ],
+            "summary": summary,
+            "content_type": content_type,
+            "tone": tone,
+        }
+
     logger.info("Phase 3: Executing clips...")
 
     executor = ClipExecutor(use_mcp_video=cfg["executor"]["mcp_video"]["enabled"])

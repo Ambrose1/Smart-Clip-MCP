@@ -56,3 +56,7 @@ HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
 
 ENTRYPOINT ["smart-clip-mcp"]
 CMD ["--transport", "sse", "--host", "0.0.0.0", "--port", "8000"]
+
+# ---- Test mode ----
+# Run: docker compose run --rm smart-clip test /workspace/videos/your.mp4
+# Analyze only: docker compose run --rm smart-clip test /workspace/videos/your.mp4 --analyze-only

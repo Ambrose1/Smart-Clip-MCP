@@ -177,7 +177,15 @@ async def run_test(
         with open(plan_path, "w", encoding="utf-8") as f:
             json.dump(plan.model_dump(), f, ensure_ascii=False, indent=2)
         logger.info(f"✓ Edit plan saved to {plan_path}")
-        return
+        # Also return structured result
+        return {
+            "success": True,
+            "analyze_only": True,
+            "summary": summary,
+            "content_type": content_type,
+            "tone": tone,
+            "plan": plan.model_dump(),
+        }
 
     # ─── Phase 3: Execute ───
     logger.info("=" * 60)
