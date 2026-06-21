@@ -36,10 +36,16 @@ class HighlightDetector:
         model: str = "gpt-4o-mini",
         temperature: float = 0.0,
         api_key: str | None = None,
+        base_url: str | None = None,
     ):
         self.model = model
         self.temperature = temperature
-        self.client = AsyncOpenAI(api_key=api_key)
+        kwargs = {}
+        if api_key:
+            kwargs["api_key"] = api_key
+        if base_url:
+            kwargs["base_url"] = base_url
+        self.client = AsyncOpenAI(**kwargs)
 
     async def detect(
         self,

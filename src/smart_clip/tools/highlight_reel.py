@@ -33,7 +33,12 @@ async def _run_highlight_reel(
 
         # Analyze
         whisper_cfg = cfg["analyzer"]["whisper"]
-        extractor = SubtitleExtractor(mode=whisper_cfg["mode"], language=whisper_cfg["language"])
+        extractor = SubtitleExtractor(
+            mode=whisper_cfg["mode"],
+            language=whisper_cfg["language"],
+            model=whisper_cfg["model"],
+            api_key=whisper_cfg.get("api_key") or None,
+        )
         subtitle = await extractor.extract(video_path, language=whisper_cfg["language"])
 
         audio_analyzer = AudioEnergyAnalyzer(

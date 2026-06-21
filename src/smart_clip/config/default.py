@@ -8,6 +8,8 @@ DEFAULT_CONFIG = {
             "mode": os.getenv("SMART_CLIP_WHISPER_MODE", "api"),
             "model": os.getenv("SMART_CLIP_WHISPER_MODEL", "base"),
             "language": os.getenv("SMART_CLIP_LANGUAGE", "zh"),
+            # Whisper API uses OpenAI only (no alternative provider)
+            "api_key": os.getenv("OPENAI_API_KEY", ""),
         },
         "audio": {
             "sample_rate": 22050,
@@ -23,7 +25,8 @@ DEFAULT_CONFIG = {
             "model": os.getenv("SMART_CLIP_LLM_MODEL", "gpt-4o-mini"),
             "temperature": 0.0,
             "max_tokens": 4096,
-            "api_key": os.getenv("OPENAI_API_KEY", ""),
+            "api_key": os.getenv("SMART_CLIP_LLM_API_KEY", "") or os.getenv("OPENAI_API_KEY", ""),
+            "base_url": os.getenv("SMART_CLIP_LLM_BASE_URL", ""),  # e.g. https://api.deepseek.com/v1
         },
         "strategy": {
             "min_score": 6.0,

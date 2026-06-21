@@ -25,7 +25,12 @@ async def _run_analyze_content(
 
     # Analyze
     whisper_cfg = cfg["analyzer"]["whisper"]
-    extractor = SubtitleExtractor(mode=whisper_cfg["mode"], language=whisper_cfg["language"])
+    extractor = SubtitleExtractor(
+        mode=whisper_cfg["mode"],
+        language=whisper_cfg["language"],
+        model=whisper_cfg["model"],
+        api_key=whisper_cfg.get("api_key") or None,
+    )
     subtitle = await extractor.extract(video_path, language=whisper_cfg["language"])
 
     audio_analyzer = AudioEnergyAnalyzer(
@@ -59,6 +64,7 @@ async def _run_analyze_content(
             model=cfg["planner"]["llm"]["model"],
             temperature=cfg["planner"]["llm"]["temperature"],
             api_key=cfg["planner"]["llm"].get("api_key") or None,
+            base_url=cfg["planner"]["llm"].get("base_url") or None,
         )
 
         candidates, summary, content_type, tone = await detector.detect(

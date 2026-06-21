@@ -1,5 +1,6 @@
 # Smart Clip MCP - Docker Compose
 # Quick test: docker compose up
+# With DeepSeek: set SMART_CLIP_LLM_API_KEY + SMART_CLIP_LLM_BASE_URL
 
 services:
   smart-clip:
@@ -8,10 +9,17 @@ services:
     ports:
       - "8000:8000"
     environment:
+      # ── LLM config (supports DeepSeek / any OpenAI-compatible API) ──
+      - SMART_CLIP_LLM_API_KEY=${SMART_CLIP_LLM_API_KEY:-${OPENAI_API_KEY:-}}
+      - SMART_CLIP_LLM_BASE_URL=${SMART_CLIP_LLM_BASE_URL:-}
+      - SMART_CLIP_LLM_MODEL=${SMART_CLIP_LLM_MODEL:-gpt-4o-mini}
+      # ── Whisper config ──
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - SMART_CLIP_WHISPER_MODE=${SMART_CLIP_WHISPER_MODE:-api}
+      - SMART_CLIP_WHISPER_MODEL=${SMART_CLIP_WHISPER_MODEL:-base}
+      - SMART_CLIP_LANGUAGE=${SMART_CLIP_LANGUAGE:-zh}
+      # ── Server config ──
       - SMART_CLIP_TRANSPORT=sse
-      - SMART_CLIP_WHISPER_MODEL=base
-      - SMART_CLIP_LANGUAGE=zh
     volumes:
       # Mount local video files into container
       - ./test-videos:/workspace/videos

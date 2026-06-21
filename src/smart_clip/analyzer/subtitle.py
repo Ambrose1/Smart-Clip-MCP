@@ -16,10 +16,11 @@ logger = logging.getLogger(__name__)
 class SubtitleExtractor:
     """Extract timestamped subtitles from video using Whisper."""
 
-    def __init__(self, mode: str = "local", language: str = "zh", model: str = "base"):
+    def __init__(self, mode: str = "local", language: str = "zh", model: str = "base", api_key: str | None = None):
         self.mode = mode
         self.language = language
         self.model_name = model
+        self.api_key = api_key
 
     async def extract(self, video_path: str, language: str | None = None) -> SubtitleResult:
         """
@@ -80,7 +81,7 @@ class SubtitleExtractor:
         """Use OpenAI Whisper API for transcription."""
         from openai import AsyncOpenAI
 
-        client = AsyncOpenAI()
+        client = AsyncOpenAI(api_key=self.api_key) if self.api_key else AsyncOpenAI()
 
         # Extract audio first (API has size limits)
         audio_path = await self._extract_audio(video_path)

@@ -40,7 +40,12 @@ async def _run_smart_clip(
     logger.info("Phase 1: Analyzing video...")
 
     whisper_cfg = cfg["analyzer"]["whisper"]
-    extractor = SubtitleExtractor(mode=whisper_cfg["mode"], language=whisper_cfg["language"], model=whisper_cfg["model"])
+    extractor = SubtitleExtractor(
+        mode=whisper_cfg["mode"],
+        language=whisper_cfg["language"],
+        model=whisper_cfg["model"],
+        api_key=whisper_cfg.get("api_key") or None,
+    )
     subtitle = await extractor.extract(video_path, language=whisper_cfg["language"])
 
     audio_cfg = cfg["analyzer"]["audio"]
@@ -67,6 +72,7 @@ async def _run_smart_clip(
         model=llm_cfg["model"],
         temperature=llm_cfg["temperature"],
         api_key=llm_cfg.get("api_key") or None,
+        base_url=llm_cfg.get("base_url") or None,
     )
 
     candidates, summary, content_type, tone = await detector.detect(
