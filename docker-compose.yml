@@ -1,0 +1,19 @@
+# Smart Clip MCP - Docker Compose
+# Quick test: docker compose up
+
+services:
+  smart-clip:
+    build: .
+    container_name: smart-clip-mcp
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - SMART_CLIP_TRANSPORT=sse
+      - SMART_CLIP_WHISPER_MODEL=base
+      - SMART_CLIP_LANGUAGE=zh
+    volumes:
+      # Mount local video files into container
+      - ./test-videos:/workspace/videos
+      - ./test-output:/workspace/output
+    restart: unless-stopped
