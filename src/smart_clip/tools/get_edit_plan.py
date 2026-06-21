@@ -8,6 +8,7 @@ import os
 from smart_clip.analyzer import SubtitleExtractor, AudioEnergyAnalyzer
 from smart_clip.planner import SpeechSegmenter, HighlightDetector, StrategyEngine
 from smart_clip.config import DEFAULT_CONFIG
+from smart_clip.utils import run_async
 
 logger = logging.getLogger(__name__)
 
@@ -127,13 +128,10 @@ def get_edit_plan_tool(
     Returns:
         包含剪辑方案的字典（未执行）
     """
-    import asyncio
-    return asyncio.get_event_loop().run_until_complete(
-        _run_get_edit_plan(
-            video_path=video_path,
-            intent=intent,
-            clip_count=clip_count,
-            clip_duration_min=clip_duration_min,
-            clip_duration_max=clip_duration_max,
-        )
-    )
+    return run_async(_run_get_edit_plan(
+        video_path=video_path,
+        intent=intent,
+        clip_count=clip_count,
+        clip_duration_min=clip_duration_min,
+        clip_duration_max=clip_duration_max,
+    ))

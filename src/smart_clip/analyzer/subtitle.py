@@ -16,9 +16,10 @@ logger = logging.getLogger(__name__)
 class SubtitleExtractor:
     """Extract timestamped subtitles from video using Whisper."""
 
-    def __init__(self, mode: str = "local", language: str = "zh"):
+    def __init__(self, mode: str = "local", language: str = "zh", model: str = "base"):
         self.mode = mode
         self.language = language
+        self.model_name = model
 
     async def extract(self, video_path: str, language: str | None = None) -> SubtitleResult:
         """
@@ -46,14 +47,13 @@ class SubtitleExtractor:
             logger.warning("whisper not installed, falling back to API mode")
             return await self._via_api(video_path, language)
 
-        logger.info(f"Loading Whisper model for {video_path}")
-        model = whisper.load_model("large-v3")
+        logger.info(f"Loading Whisper model '{self.model_name}' for {video_path}")
+        model = whisper.load_model(self.model_name)
 
         result = model.transcribe(
             video_path,
             language=language,
             word_timestamps=True,
-            vad_filter=True,
         )
 
         segments = []

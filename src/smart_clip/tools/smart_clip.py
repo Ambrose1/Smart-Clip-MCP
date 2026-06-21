@@ -11,6 +11,7 @@ from smart_clip.executor import ClipExecutor
 from smart_clip.models.plan import ExecuteConfig
 from smart_clip.models.result import ClipResult, AnalysisInfo
 from smart_clip.config import DEFAULT_CONFIG
+from smart_clip.utils import run_async
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +39,7 @@ async def _run_smart_clip(
     logger.info("Phase 1: Analyzing video...")
 
     whisper_cfg = cfg["analyzer"]["whisper"]
-    extractor = SubtitleExtractor(mode=whisper_cfg["mode"], language=whisper_cfg["language"])
+    extractor = SubtitleExtractor(mode=whisper_cfg["mode"], language=whisper_cfg["language"], model=whisper_cfg["model"])
     subtitle = await extractor.extract(video_path, language=whisper_cfg["language"])
 
     audio_cfg = cfg["analyzer"]["audio"]
@@ -158,17 +159,14 @@ def smart_clip_tool(
     Returns:
         包含输出片段列表和分析摘要的字典
     """
-    import asyncio
-    return asyncio.get_event_loop().run_until_complete(
-        _run_smart_clip(
-            video_path=video_path,
-            intent=intent,
-            clip_count=clip_count,
-            clip_duration_min=clip_duration_min,
-            clip_duration_max=clip_duration_max,
-            platform=platform,
-            with_subtitles=with_subtitles,
-            with_bgm=with_bgm,
-            output_dir=output_dir,
-        )
-    )
+    return run_async(_run_smart_clip(
+        video_path=video_path,
+        intent=intent,
+        clip_count=clip_count,
+        clip_duration_min=clip_duration_min,
+        clip_duration_max=clip_duration_max,
+        platform=platform,
+        with_subtitles=with_subtitles,
+        with_bgm=with_bgm,
+        output_dir=output_dir,
+    ))

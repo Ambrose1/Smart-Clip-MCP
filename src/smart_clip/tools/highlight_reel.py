@@ -6,6 +6,7 @@ import logging
 import os
 
 from smart_clip.analyzer import SubtitleExtractor
+from smart_clip.utils import run_async
 from smart_clip.planner import SpeechSegmenter, HighlightDetector, StrategyEngine
 from smart_clip.executor import ClipExecutor
 from smart_clip.models.plan import ExecuteConfig
@@ -123,11 +124,8 @@ def highlight_reel_tool(
     Returns:
         包含跨视频精选片段的字典
     """
-    import asyncio
-    return asyncio.get_event_loop().run_until_complete(
-        _run_highlight_reel(
-            video_paths=video_paths,
-            theme=theme,
-            target_duration=target_duration,
-        )
-    )
+    return run_async(_run_highlight_reel(
+        video_paths=video_paths,
+        theme=theme,
+        target_duration=target_duration,
+    ))

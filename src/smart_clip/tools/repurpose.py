@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 
 from smart_clip.tools.smart_clip import _run_smart_clip
+from smart_clip.utils import run_async
 
 logger = logging.getLogger(__name__)
 
@@ -48,17 +49,15 @@ def repurpose_tool(
     platform_defaults = PLATFORM_DEFAULTS.get(platform, {})
     max_duration = platform_defaults.get("clip_duration_max", 60)
 
-    return asyncio.get_event_loop().run_until_complete(
-        _run_smart_clip(
-            video_path=video_path,
-            intent=intent,
-            clip_count=clip_count,
-            clip_duration_min=15,
-            clip_duration_max=max_duration,
-            platform=platform,
-            with_subtitles=True,
-            with_bgm=False,
-            output_dir=f"./smart-clip-output/{platform}",
-            template="quote" if style == "entertaining" else "default",
-        )
-    )
+    return run_async(_run_smart_clip(
+        video_path=video_path,
+        intent=intent,
+        clip_count=clip_count,
+        clip_duration_min=15,
+        clip_duration_max=max_duration,
+        platform=platform,
+        with_subtitles=True,
+        with_bgm=False,
+        output_dir=f"./smart-clip-output/{platform}",
+        template="quote" if style == "entertaining" else "default",
+    ))

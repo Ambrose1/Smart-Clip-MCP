@@ -26,8 +26,6 @@ classifiers = [
 dependencies = [
     "fastmcp>=0.1.0",
     "openai>=1.0.0",
-    "openai-whisper>=20231117",
-    "mcp-video>=1.5.0",
     "librosa>=0.10.0",
     "scenedetect[opencv]>=0.6.0",
     "pyyaml>=6.0",
@@ -35,6 +33,15 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+local-whisper = [
+    "openai-whisper>=20231117",
+]
+mcp-video = [
+    "mcp-video>=1.5.0",
+]
+all = [
+    "smart-clip-mcp[local-whisper,mcp-video]",
+]
 dev = [
     "pytest>=7.0",
     "pytest-asyncio>=0.21",

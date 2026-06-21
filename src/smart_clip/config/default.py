@@ -5,8 +5,8 @@ import os
 DEFAULT_CONFIG = {
     "analyzer": {
         "whisper": {
-            "mode": os.getenv("SMART_CLIP_WHISPER_MODE", "local"),
-            "model": os.getenv("SMART_CLIP_WHISPER_MODEL", "large-v3"),
+            "mode": os.getenv("SMART_CLIP_WHISPER_MODE", "api"),
+            "model": os.getenv("SMART_CLIP_WHISPER_MODEL", "base"),
             "language": os.getenv("SMART_CLIP_LANGUAGE", "zh"),
         },
         "audio": {

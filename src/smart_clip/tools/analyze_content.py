@@ -8,6 +8,7 @@ import os
 from smart_clip.analyzer import SubtitleExtractor, AudioEnergyAnalyzer
 from smart_clip.planner import SpeechSegmenter, HighlightDetector
 from smart_clip.config import DEFAULT_CONFIG
+from smart_clip.utils import run_async
 
 logger = logging.getLogger(__name__)
 
@@ -128,7 +129,4 @@ def analyze_content_tool(
     Returns:
         包含内容分析报告的字典
     """
-    import asyncio
-    return asyncio.get_event_loop().run_until_complete(
-        _run_analyze_content(video_path=video_path, focus=focus)
-    )
+    return run_async(_run_analyze_content(video_path=video_path, focus=focus))
