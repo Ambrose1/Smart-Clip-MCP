@@ -15,13 +15,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY pyproject.toml README.md LICENSE ./
 COPY src/ src/
 
-# Install base deps only (no torch, no mcp-video)
-# Use BUILD_MODE=full to include local-whisper + mcp-video
+# Default install: base + faster-whisper (no PyTorch, no torch)
+# Use BUILD_MODE=full to also include mcp-video
 ARG BUILD_MODE=lite
 RUN if [ "$BUILD_MODE" = "full" ]; then \
         pip install --no-cache-dir --prefix=/install ".[all]"; \
+    elif [ "$BUILD_MODE" = "local-whisper" ]; then \
+        pip install --no-cache-dir --prefix=/install ".[local-whisper]"; \
     else \
-        pip install --no-cache-dir --prefix=/install "."; \
+        pip install --no-cache-dir --prefix=/install ".[local-whisper]"; \
     fi
 
 # ---- Runtime ----
@@ -49,7 +51,7 @@ WORKDIR /app
 ENV SMART_CLIP_TRANSPORT=sse
 ENV SMART_CLIP_HOST=0.0.0.0
 ENV SMART_CLIP_PORT=8000
-ENV SMART_CLIP_WHISPER_MODE=api
+ENV SMART_CLIP_WHISPER_MODE=local
 ENV SMART_CLIP_WHISPER_MODEL=base
 ENV SMART_CLIP_LANGUAGE=zh
 

@@ -64,8 +64,8 @@ def main():
     test_parser.add_argument("--platform", default="original", help="Target platform")
     test_parser.add_argument("--output", default="./smart-clip-output", help="Output directory")
     test_parser.add_argument("--analyze-only", action="store_true", help="Only analyze, don't clip")
-    test_parser.add_argument("--whisper-mode", default=os.getenv("SMART_CLIP_WHISPER_MODE", "api"), choices=["api", "local"], help="Whisper mode")
-    test_parser.add_argument("--whisper-model", default=os.getenv("SMART_CLIP_WHISPER_MODEL", "base"), help="Whisper model name")
+    test_parser.add_argument("--whisper-mode", default=os.getenv("SMART_CLIP_WHISPER_MODE", "local"), choices=["api", "local"], help="Whisper mode: local (faster-whisper) or api (OpenAI)")
+    test_parser.add_argument("--whisper-model", default=os.getenv("SMART_CLIP_WHISPER_MODEL", "base"), help="Whisper model size: tiny/base/small/medium/large-v3")
     test_parser.add_argument("--language", default=os.getenv("SMART_CLIP_LANGUAGE", "zh"), help="Language code")
 
     args = parser.parse_args()

@@ -5,7 +5,7 @@ import os
 DEFAULT_CONFIG = {
     "analyzer": {
         "whisper": {
-            "mode": os.getenv("SMART_CLIP_WHISPER_MODE", "api"),
+            "mode": os.getenv("SMART_CLIP_WHISPER_MODE", "local"),
             "model": os.getenv("SMART_CLIP_WHISPER_MODEL", "base"),
             "language": os.getenv("SMART_CLIP_LANGUAGE", "zh"),
             # Whisper API uses OpenAI only (no alternative provider)

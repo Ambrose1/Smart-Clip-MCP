@@ -1,4 +1,4 @@
-"""Subtitle extraction module using Whisper."""
+"""Subtitle extraction module using Whisper (faster-whisper / OpenAI API)."""
 
 from __future__ import annotations
 
@@ -41,39 +41,53 @@ class SubtitleExtractor:
             return await self._via_api(video_path, lang)
 
     async def _via_local_whisper(self, video_path: str, language: str) -> SubtitleResult:
-        """Use local Whisper model for transcription."""
+        """Use local faster-whisper model for transcription."""
         try:
-            import whisper
+            from faster_whisper import WhisperModel
         except ImportError:
-            logger.warning("whisper not installed, falling back to API mode")
+            logger.warning("faster-whisper not installed, falling back to API mode")
             return await self._via_api(video_path, language)
 
-        logger.info(f"Loading Whisper model '{self.model_name}' for {video_path}")
-        model = whisper.load_model(self.model_name)
+        logger.info(f"Loading faster-whisper model '{self.model_name}' for {video_path}")
 
-        result = model.transcribe(
+        # Auto-detect GPU; faster-whisper uses CTranslate2, no PyTorch needed on CPU
+        try:
+            import torch as _torch
+            device = "cuda" if _torch.cuda.is_available() else "cpu"
+            compute_type = "float16" if device == "cuda" else "int8"
+        except ImportError:
+            device = "cpu"
+            compute_type = "int8"
+
+        model = WhisperModel(self.model_name, device=device, compute_type=compute_type)
+
+        segments_iter, info = model.transcribe(
             video_path,
             language=language,
             word_timestamps=True,
+            vad_filter=True,
+            vad_parameters=dict(min_silence_duration_ms=500),
         )
 
         segments = []
         full_text_parts = []
-        for i, seg in enumerate(result["segments"]):
+        for i, seg in enumerate(segments_iter):
             segments.append(
                 Segment(
                     index=i,
-                    start=round(seg["start"], 2),
-                    end=round(seg["end"], 2),
-                    text=seg["text"].strip(),
-                    confidence=seg.get("avg_logprob", 0.0),
+                    start=round(seg.start, 2),
+                    end=round(seg.end, 2),
+                    text=seg.text.strip(),
+                    confidence=seg.avg_logprob if seg.avg_logprob else 0.0,
                 )
             )
-            full_text_parts.append(seg["text"].strip())
+            full_text_parts.append(seg.text.strip())
+
+        logger.info(f"Transcription done: {len(segments)} segments, language={info.language} ({info.language_probability:.2f})")
 
         return SubtitleResult(
             segments=segments,
-            language=language,
+            language=info.language if info.language_probability > 0.8 else language,
             full_text=" ".join(full_text_parts),
         )
 

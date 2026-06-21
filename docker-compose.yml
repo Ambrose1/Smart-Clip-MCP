@@ -15,7 +15,7 @@ services:
       - SMART_CLIP_LLM_MODEL=${SMART_CLIP_LLM_MODEL:-gpt-4o-mini}
       # ── Whisper config ──
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      - SMART_CLIP_WHISPER_MODE=${SMART_CLIP_WHISPER_MODE:-api}
+      - SMART_CLIP_WHISPER_MODE=${SMART_CLIP_WHISPER_MODE:-local}
       - SMART_CLIP_WHISPER_MODEL=${SMART_CLIP_WHISPER_MODEL:-base}
       - SMART_CLIP_LANGUAGE=${SMART_CLIP_LANGUAGE:-zh}
       # ── Server config ──

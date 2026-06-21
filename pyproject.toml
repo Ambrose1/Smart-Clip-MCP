@@ -34,7 +34,7 @@ dependencies = [
 
 [project.optional-dependencies]
 local-whisper = [
-    "openai-whisper>=20231117",
+    "faster-whisper>=1.0.0",
 ]
 mcp-video = [
     "mcp-video>=1.5.0",
