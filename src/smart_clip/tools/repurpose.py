@@ -18,16 +18,16 @@ PLATFORM_DEFAULTS = {
 
 
 def repurpose_tool(
-    video_path: str,
+    video_input: str,
     platform: str = "tiktok",
     clip_count: int = 3,
     style: str = "informative",
 ) -> dict:
     """
-    将长视频自动重制为适配目标平台的短视频。自动识别精彩内容、裁切、加字幕、调比例。
+    将长视频自动重制为适配目标平台的短视频。支持文件路径和URL。自动识别精彩内容、裁切、加字幕、调比例。
 
     Args:
-        video_path: 输入视频文件路径
+        video_input: 输入视频文件路径或URL
         platform: 目标平台 (tiktok/youtube_shorts/instagram_reels)
         clip_count: 期望输出的片段数量
         style: 剪辑风格偏好 (informative/entertaining/emotional)
@@ -50,7 +50,7 @@ def repurpose_tool(
     max_duration = platform_defaults.get("clip_duration_max", 60)
 
     return run_async(_run_smart_clip(
-        video_path=video_path,
+        video_input=video_input,
         intent=intent,
         clip_count=clip_count,
         clip_duration_min=15,

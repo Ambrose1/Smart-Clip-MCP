@@ -22,23 +22,126 @@ class SubtitleExtractor:
         self.model_name = model
         self.api_key = api_key
 
-    async def extract(self, video_path: str, language: str | None = None) -> SubtitleResult:
+    async def extract(self, video_path: str, language: str | None = None, srt_path: str | None = None) -> SubtitleResult:
         """
         Extract subtitles from video.
 
         Args:
             video_path: Path to the input video file.
             language: Override language code (default: instance language).
+            srt_path: Optional path to external SRT/VTT subtitle file. Auto-detected if not given.
 
         Returns:
             SubtitleResult with segments, language, and full text.
         """
         lang = language or self.language
 
+        # Check for external subtitle file (explicit or auto-detect)
+        srt_file = srt_path or self._find_subtitle_file(video_path)
+        if srt_file:
+            return await self._from_srt(srt_file, lang)
+
         if self.mode == "local":
             return await self._via_local_whisper(video_path, lang)
         else:
             return await self._via_api(video_path, lang)
+
+    @staticmethod
+    def _find_subtitle_file(video_path: str) -> str | None:
+        """Auto-detect SRT/VTT file matching the video name."""
+        base = os.path.splitext(video_path)[0]
+        for ext in (".srt", ".vtt"):
+            candidate = base + ext
+            if os.path.exists(candidate):
+                logger.info(f"Found external subtitle: {candidate}")
+                return candidate
+        return None
+
+    async def _from_srt(self, srt_path: str, language: str) -> SubtitleResult:
+        """Parse SRT or VTT subtitle file into Segments."""
+        import re
+
+        with open(srt_path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        is_vtt = srt_path.endswith(".vtt")
+        segments = []
+        full_text_parts = []
+
+        if is_vtt:
+            blocks = self._parse_vtt(content)
+        else:
+            blocks = self._parse_srt(content)
+
+        for i, (start, end, text) in enumerate(blocks):
+            segments.append(Segment(
+                index=i,
+                start=round(start, 2),
+                end=round(end, 2),
+                text=text,
+                confidence=1.0,
+            ))
+            full_text_parts.append(text)
+
+        logger.info(f"Parsed {len(segments)} segments from {srt_path}")
+        return SubtitleResult(
+            segments=segments,
+            language=language,
+            full_text=" ".join(full_text_parts),
+        )
+
+    @staticmethod
+    def _parse_srt(content: str) -> list[tuple[float, float, str]]:
+        """Parse SRT format into list of (start, end, text)."""
+        import re
+        blocks: list[tuple[float, float, str]] = []
+        raw = re.split(r"\n\s*\n", content.strip())
+
+        for block in raw:
+            lines = block.strip().splitlines()
+            if len(lines) < 2:
+                continue
+            for line in lines:
+                m = re.match(r"(\d+):(\d+):(\d+)[,.](\d+)\s*-->\s*(\d+):(\d+):(\d+)[,.](\d+)", line)
+                if m:
+                    start = int(m.group(1)) * 3600 + int(m.group(2)) * 60 + int(m.group(3)) + int(m.group(4)) / 1000
+                    end = int(m.group(5)) * 3600 + int(m.group(6)) * 60 + int(m.group(7)) + int(m.group(8)) / 1000
+                    text = "\n".join(lines[lines.index(line) + 1:]).strip()
+                    text = re.sub(r"<[^>]+>", "", text)  # strip HTML tags
+                    blocks.append((start, end, text))
+                    break
+        return blocks
+
+    @staticmethod
+    def _parse_vtt(content: str) -> list[tuple[float, float, str]]:
+        """Parse WebVTT format into list of (start, end, text)."""
+        import re
+        blocks: list[tuple[float, float, str]] = []
+
+        # Strip WEBVTT header
+        header_end = content.find("\n\n")
+        if header_end > 0:
+            content = content[header_end:]
+
+        raw = re.split(r"\n\s*\n", content.strip())
+
+        for block in raw:
+            lines = block.strip().splitlines()
+            if not lines:
+                continue
+            # Skip NOTE blocks
+            if lines[0].startswith("NOTE"):
+                continue
+            for i, line in enumerate(lines):
+                m = re.match(r"(\d+):(\d+):(\d+)[.](\d+)\s*-->\s*(\d+):(\d+):(\d+)[.](\d+)", line)
+                if m:
+                    start = int(m.group(1)) * 3600 + int(m.group(2)) * 60 + int(m.group(3)) + int(m.group(4)) / 1000
+                    end = int(m.group(5)) * 3600 + int(m.group(6)) * 60 + int(m.group(7)) + int(m.group(8)) / 1000
+                    text = "\n".join(lines[i + 1:]).strip()
+                    text = re.sub(r"<[^>]+>", "", text)
+                    blocks.append((start, end, text))
+                    break
+        return blocks
 
     async def _via_local_whisper(self, video_path: str, language: str) -> SubtitleResult:
         """Use local faster-whisper model for transcription."""

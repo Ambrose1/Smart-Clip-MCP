@@ -6,6 +6,10 @@ FROM python:3.12-slim AS builder
 
 WORKDIR /build
 
+# Use China mirror for reliability (same as runtime)
+RUN sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list.d/debian.sources 2>/dev/null || \
+    sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list 2>/dev/null || true
+
 # Install build deps
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git build-essential && \
@@ -21,9 +25,9 @@ ARG BUILD_MODE=lite
 RUN if [ "$BUILD_MODE" = "full" ]; then \
         pip install --no-cache-dir --prefix=/install ".[all]"; \
     elif [ "$BUILD_MODE" = "local-whisper" ]; then \
-        pip install --no-cache-dir --prefix=/install ".[local-whisper]"; \
+        pip install --no-cache-dir --prefix=/install ".[local-whisper,url]"; \
     else \
-        pip install --no-cache-dir --prefix=/install ".[local-whisper]"; \
+        pip install --no-cache-dir --prefix=/install ".[local-whisper,url]"; \
     fi
 
 # ---- Runtime ----

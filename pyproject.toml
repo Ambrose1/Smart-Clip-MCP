@@ -36,6 +36,9 @@ dependencies = [
 local-whisper = [
     "faster-whisper>=1.0.0",
 ]
+url = [
+    "yt-dlp>=2024.0.0",
+]
 mcp-video = [
     "mcp-video>=1.5.0",
 ]

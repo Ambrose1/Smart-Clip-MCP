@@ -14,7 +14,7 @@ cd "$SCRIPT_DIR"
 
 # ── 配置区：改这里就行 ──────────────────────────────────
 # LLM 配置（DeepSeek / OpenAI / 任何兼容接口）
-LLM_API_KEY=""                        # 填你的 key
+LLM_API_KEY="sk-aae7d01bbb35437180dd5d60508eea3a"                        # 填你的 key
 LLM_BASE_URL="https://api.deepseek.com/v1"  # DeepSeek; OpenAI 留空
 LLM_MODEL="deepseek-chat"             # deepseek-chat / gpt-4o-mini
 
@@ -79,5 +79,6 @@ docker compose run --rm \
     -e SMART_CLIP_WHISPER_MODE="${WHISPER_MODE}" \
     -e OPENAI_API_KEY="${OPENAI_API_KEY}" \
     -e SMART_CLIP_LANGUAGE="${LANGUAGE}" \
+    -e HF_ENDPOINT="https://hf-mirror.com" \
     smart-clip \
-    test /workspace/videos/"$VIDEO" "$@"
+    test --output /workspace/output/ /workspace/videos/"$VIDEO" "$@"

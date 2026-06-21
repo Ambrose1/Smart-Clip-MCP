@@ -5,19 +5,20 @@ from __future__ import annotations
 import logging
 import os
 
-from smart_clip.analyzer import SubtitleExtractor, AudioEnergyAnalyzer
+from smart_clip.analyzer import AudioEnergyAnalyzer
 from smart_clip.planner import SpeechSegmenter, HighlightDetector, StrategyEngine
 from smart_clip.executor import ClipExecutor
 from smart_clip.models.plan import ExecuteConfig
 from smart_clip.models.result import ClipResult, AnalysisInfo
 from smart_clip.config import DEFAULT_CONFIG
 from smart_clip.utils import run_async
+from smart_clip.resolver import VideoResolver
 
 logger = logging.getLogger(__name__)
 
 
 async def _run_smart_clip(
-    video_path: str,
+    video_input: str,
     intent: str = "提取精彩片段",
     clip_count: int = 5,
     clip_duration_min: int = 15,
@@ -25,28 +26,32 @@ async def _run_smart_clip(
     platform: str = "original",
     with_subtitles: bool = True,
     with_bgm: bool = False,
-    output_dir: str = "./smart-clip-output",
+    output_dir: str | None = None,
     template: str = "default",
     analyze_only: bool = False,
+    srt_path: str | None = None,
 ) -> dict:
-    """Core logic for smart_clip tool."""
-    # Validate input
-    if not os.path.exists(video_path):
-        return {"success": False, "error": f"Video file not found: {video_path}"}
+    """Core logic for smart_clip tool. video_input can be a local path or a URL."""
+    if output_dir is None:
+        output_dir = os.getenv("SMART_CLIP_OUTPUT_DIR", "./smart-clip-output")
 
     cfg = DEFAULT_CONFIG
-
-    # Phase 1: Analyze
-    logger.info("Phase 1: Analyzing video...")
-
     whisper_cfg = cfg["analyzer"]["whisper"]
-    extractor = SubtitleExtractor(
-        mode=whisper_cfg["mode"],
+
+    # Resolve input: URL → download video+subs, file → SRT/Whisper
+    resolver = VideoResolver(
+        whisper_mode=whisper_cfg["mode"],
         language=whisper_cfg["language"],
-        model=whisper_cfg["model"],
+        whisper_model=whisper_cfg["model"],
         api_key=whisper_cfg.get("api_key") or None,
     )
-    subtitle = await extractor.extract(video_path, language=whisper_cfg["language"])
+    try:
+        video_path, subtitle, source_info = await resolver.resolve(video_input, srt_path)
+    except Exception as e:
+        return {"success": False, "error": f"Failed to resolve input: {e}"}
+
+    # Phase 1: Analyze (subtitles already resolved above, now analyze audio)
+    logger.info("Phase 1: Analyzing video...")
 
     audio_cfg = cfg["analyzer"]["audio"]
     audio_analyzer = AudioEnergyAnalyzer(
@@ -124,6 +129,7 @@ async def _run_smart_clip(
         return {
             "success": True,
             "analyze_only": True,
+            "source": source_info,
             "analysis": analysis.model_dump(),
             "plan": plan.model_dump(),
             "candidates": [
@@ -166,11 +172,13 @@ async def _run_smart_clip(
     )
     result.analysis = analysis
 
-    return result.model_dump()
+    final = result.model_dump()
+    final["source"] = source_info
+    return final
 
 
 def smart_clip_tool(
-    video_path: str,
+    video_input: str,
     intent: str = "提取精彩片段",
     clip_count: int = 5,
     clip_duration_min: int = 15,
@@ -181,10 +189,10 @@ def smart_clip_tool(
     output_dir: str = "./smart-clip-output",
 ) -> dict:
     """
-    从长视频中自动识别精彩片段并裁切输出。适用于口播、播客、直播回放等语音驱动内容。
+    从长视频中自动识别精彩片段并裁切输出。支持文件路径和URL。适用于口播、播客、直播回放等语音驱动内容。
 
     Args:
-        video_path: 输入视频文件路径
+        video_input: 输入视频文件路径或URL (如 https://www.bilibili.com/video/xxx)
         intent: 剪辑意图，自然语言描述。如：'提取最精彩的5个片段' / '找出所有金句'
         clip_count: 期望输出的片段数量
         clip_duration_min: 单片段最短秒数
@@ -198,7 +206,7 @@ def smart_clip_tool(
         包含输出片段列表和分析摘要的字典
     """
     return run_async(_run_smart_clip(
-        video_path=video_path,
+        video_input=video_input,
         intent=intent,
         clip_count=clip_count,
         clip_duration_min=clip_duration_min,

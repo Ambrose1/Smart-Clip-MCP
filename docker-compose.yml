@@ -24,4 +24,12 @@ services:
       # Mount local video files into container
       - ./test-videos:/workspace/videos
       - ./test-output:/workspace/output
+      # Uploads and output for Agent integration
+      - ./uploads:/app/uploads
+      - ./smart-clip-output:/app/smart-clip-output
+      # Cache HuggingFace models to avoid re-downloading
+      - hf-cache:/root/.cache/huggingface
     restart: unless-stopped
+
+volumes:
+  hf-cache:

@@ -23,12 +23,19 @@ from smart_clip.tools.highlight_reel import highlight_reel_tool
 from smart_clip.tools.analyze_content import analyze_content_tool
 from smart_clip.tools.get_edit_plan import get_edit_plan_tool
 
+UPLOAD_DIR = os.getenv("SMART_CLIP_UPLOAD_DIR", os.path.join(os.getcwd(), "uploads"))
+OUTPUT_DIR = os.getenv("SMART_CLIP_OUTPUT_DIR", os.path.join(os.getcwd(), "smart-clip-output"))
+
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+
 mcp = FastMCP(
     "smart-clip",
     version="0.1.0",
     instructions="AI-powered smart video clipping MCP server. "
     "Identifies highlight moments from long videos using subtitle analysis + LLM, "
-    "then clips them into short-form content.",
+    "then clips them into short-form content. "
+    "Use POST /upload to upload videos, GET /output/{filename} to download results.",
 )
 
 # Register tools
@@ -37,6 +44,74 @@ mcp.tool(repurpose_tool)
 mcp.tool(highlight_reel_tool)
 mcp.tool(analyze_content_tool)
 mcp.tool(get_edit_plan_tool)
+
+
+# ── HTTP endpoints for file transfer (SSE mode only) ──
+
+@mcp.custom_route("/upload", methods=["POST"])
+async def upload_video(request):
+    """Accept multipart video upload, return server-side path for use in tools."""
+    from starlette.responses import JSONResponse
+
+    try:
+        form = await request.form()
+        file = form.get("file")
+        if file is None:
+            return JSONResponse({"error": "No 'file' field in form data"}, status_code=400)
+
+        import uuid
+        filename = f"{uuid.uuid4().hex[:8]}_{file.filename}"
+        dest = os.path.join(UPLOAD_DIR, filename)
+        with open(dest, "wb") as f:
+            f.write(await file.read())
+
+        return JSONResponse({
+            "success": True,
+            "path": dest,
+            "filename": filename,
+            "size": os.path.getsize(dest),
+        })
+    except Exception as e:
+        return JSONResponse({"success": False, "error": str(e)}, status_code=500)
+
+
+@mcp.custom_route("/output/{filename:path}", methods=["GET"])
+async def download_output(request):
+    """Serve a file from the output directory."""
+    from starlette.responses import FileResponse, JSONResponse
+
+    filename = request.path_params.get("filename", "")
+    filepath = os.path.join(OUTPUT_DIR, filename)
+
+    # Security: prevent directory traversal
+    real_path = os.path.realpath(filepath)
+    real_output = os.path.realpath(OUTPUT_DIR)
+    if not real_path.startswith(real_output):
+        return JSONResponse({"error": "Invalid path"}, status_code=403)
+
+    if not os.path.exists(filepath):
+        return JSONResponse({"error": "File not found"}, status_code=404)
+
+    return FileResponse(filepath)
+
+
+@mcp.custom_route("/uploads/{filename:path}", methods=["GET"])
+async def serve_upload(request):
+    """Serve a file from the upload directory (for checking uploaded files)."""
+    from starlette.responses import FileResponse, JSONResponse
+
+    filename = request.path_params.get("filename", "")
+    filepath = os.path.join(UPLOAD_DIR, filename)
+
+    real_path = os.path.realpath(filepath)
+    real_upload = os.path.realpath(UPLOAD_DIR)
+    if not real_path.startswith(real_upload):
+        return JSONResponse({"error": "Invalid path"}, status_code=403)
+
+    if not os.path.exists(filepath):
+        return JSONResponse({"error": "File not found"}, status_code=404)
+
+    return FileResponse(filepath)
 
 
 def main():
@@ -67,6 +142,7 @@ def main():
     test_parser.add_argument("--whisper-mode", default=os.getenv("SMART_CLIP_WHISPER_MODE", "local"), choices=["api", "local"], help="Whisper mode: local (faster-whisper) or api (OpenAI)")
     test_parser.add_argument("--whisper-model", default=os.getenv("SMART_CLIP_WHISPER_MODEL", "base"), help="Whisper model size: tiny/base/small/medium/large-v3")
     test_parser.add_argument("--language", default=os.getenv("SMART_CLIP_LANGUAGE", "zh"), help="Language code")
+    test_parser.add_argument("--srt", default=None, help="Path to external SRT/VTT subtitle file (auto-detect if omitted)")
 
     args = parser.parse_args()
 
@@ -93,7 +169,7 @@ def _run_test(args):
     from smart_clip.tools.smart_clip import _run_smart_clip
 
     result = asyncio.run(_run_smart_clip(
-        video_path=args.video,
+        video_input=args.video,
         intent=args.intent,
         clip_count=args.count,
         clip_duration_min=args.min,
@@ -104,6 +180,7 @@ def _run_test(args):
         output_dir=args.output,
         template="default",
         analyze_only=args.analyze_only,
+        srt_path=args.srt,
     ))
 
     import json
